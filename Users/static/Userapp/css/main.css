@@ -1,0 +1,17 @@
+footer{
+    margin-top: 8px;
+    margin-left: 150px;
+    vertical-align: middle;
+    text-align: center;
+}
+footer a,span{
+    text-decoration: none;
+    padding: 5px;
+    margin-top: 5px;
+    font-size: 18px;
+    color: rgb(39, 29, 29);
+}
+footer a:hover{
+    color:  rgb(39, 29, 29);
+    text-decoration: underline;
+} 
