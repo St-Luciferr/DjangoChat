@@ -36,6 +36,80 @@ let sdpConstraints = {
     offerToReceiveVideo: true
 };
 
+chatSocket.addEventListener('open', (e) => {
+    console.log('Opened Connection!!!');
+    sendSignal('new-peer', {});
+});
+
+chatSocket.onmessage = function (e) {
+    var data = JSON.parse(e.data);
+    let response_type = data.type
+    if (response_type == 'msg') {
+
+        let sent_by;
+        let display_msg;
+        let tmp;
+        if (data.sender == userName) {
+            sent_by = 'self';
+            tmp = "me"
+        }
+        else {
+            sent_by = 'other';
+            tmp = data.sender
+        }
+        console.log(data)
+        display_msg = '<div class="' + sent_by + '">' + tmp + ': ' + data.message + '</div>';
+        console.log(display_msg);
+        document.querySelector('#chat-log').innerHTML += display_msg;
+    }
+
+    if (response_type == 'call_received') {
+        console.log(data);
+        onNewCall(data);
+    }
+
+    if (response_type == 'call_answered') {
+        onCallAnswered(data);
+    }
+
+    if (response_type == 'ICE_Candidate') {
+        onICECandidate(data);
+    }
+
+    if(response_type=="End_Call"){
+        onEndCall();
+    }
+};
+
+chatSocket.onclose = function (e) {
+    console.error('Chat socket closed unexpectedly', e);
+};
+
+document.querySelector("#video_call_button").addEventListener("click", call);
+
+document.querySelector('#Answer_Call_button').addEventListener('click',answer);
+
+document.querySelector("#end_call_button").addEventListener('click',EndCall);
+
+document.querySelector('#chat-message-input').focus();
+
+document.querySelector('#chat-message-input').addEventListener('keyup', function (e) {
+    if (e.keyCode === 13) {  // enter, return
+        document.querySelector('#chat-message-submit').click();
+    }
+});
+
+document.querySelector('#chat-message-submit').addEventListener('click', function (e) {
+    const messageInputDom = document.querySelector('#chat-message-input');
+    const message = messageInputDom.value;
+    chatSocket.send(JSON.stringify({
+        'type': 'msg',
+        'sender': userName,
+        'message': message
+    }));
+    messageInputDom.value = '';
+});
+
 function call() {
     let userToCall = roomName;
     otherUser = userToCall;
@@ -53,8 +127,6 @@ function answer() {
         .then(bool => {
             processAccept();
         })
-
-    // document.getElementById("answer").style.display = "none";
 };
 
 function beReady() {
@@ -76,8 +148,6 @@ function beReady() {
         });
 };
 
-document.querySelector("#video_call_button").addEventListener("click", beReady);
-
 function createConnectionAndAddStream() {
     createPeerConnection();
     peerConnection.addStream(localStream);
@@ -85,19 +155,54 @@ function createConnectionAndAddStream() {
 };
 
 function processCall(room_name) {
-    // localStream.getTracks().forEach((track)=>{
-    //     peerConnection.addStream
-    // })
     peerConnection.createOffer((sessionDescription) => {
         console.log("session Description: ",sessionDescription);
         peerConnection.setLocalDescription(sessionDescription);
         sendCall({
-            // 'GroupName': room_name,
             'message': sessionDescription
         })
     }, (error) => {
         console.log("Error:", error.name);
     });
+};
+
+function sendCall(data) {
+    //to send a call
+    console.log("Send Call");
+
+    chatSocket.send(JSON.stringify({
+        'type': 'call',
+        'sender': userName,
+        'message': data.message
+    }));
+    document.getElementById("video_call_button").style.visibility = "hidden";
+    document.getElementById("Voice_Call_button").style.visibility = "hidden";
+    document.getElementById("calling").style.visibility = "visible";
+};
+
+const onEndCall=()=>{
+    stop();
+}
+
+function EndCall(){
+    stop();
+    chatSocket.send(JSON.stringify({
+        'type': 'end_call',
+        'sender': userName,
+        'message':'Ending call'
+    }));
+}
+
+const onNewCall = (data) => {
+    otherUser = data.sender;
+    if(otherUser==userName){
+        return;
+    }
+    remoteRTCMessage = data.message;
+    document.getElementById("video_call_button").style.visibility = "hidden";
+    document.getElementById("Voice_Call_button").style.visibility = "hidden";
+    document.getElementById("calling").style.visibility = "visible";
+    document.getElementById("Answer_Call_button").style.visibility = "visible";
 };
 
 function processAccept() {
@@ -107,10 +212,6 @@ function processAccept() {
         peerConnection.setLocalDescription(sessionDescription);
 
         if (iceCandidatesFromCaller.length > 0) {
-            //I am having issues with call not being processed in real world (internet, not local)
-            //so I will push iceCandidates I received after the call arrived, push it and, once we accept
-            //add it as ice candidate
-            //if the offer rtc message contains all thes ICE candidates we can ingore this.
             for (let i = 0; i < iceCandidatesFromCaller.length; i++) {
                 //
                 let candidate = iceCandidatesFromCaller[i];
@@ -233,58 +334,13 @@ function handleRemoteStreamRemoved(event) {
     localVideo.srcObject = null;
 };
 
-chatSocket.onmessage = function (e) {
-    var data = JSON.parse(e.data);
-    let response_type = data.type
-    if (response_type == 'msg') {
-
-        let sent_by;
-        let display_msg;
-        let tmp;
-        if (data.sender == userName) {
-            sent_by = 'self';
-            tmp = "me"
-        }
-        else {
-            sent_by = 'other';
-            tmp = data.sender
-        }
-        console.log(data)
-        display_msg = '<div class="' + sent_by + '">' + tmp + ': ' + data.message + '</div>';
-        console.log(display_msg);
-        document.querySelector('#chat-log').innerHTML += display_msg;
-    }
-
-    if (response_type == 'call_received') {
-        console.log(data);
-        onNewCall(data);
-    }
-
-    if (response_type == 'call_answered') {
-        onCallAnswered(data);
-    }
-
-    if (response_type == 'ICE_Candidate') {
-        onICECandidate(data);
-    }
-};
-
-const onNewCall = (data) => {
-    otherUser = data.sender;
-    remoteRTCMessage = data.message;
-
-    document.getElementById("video_call_button").style.display = "none";
-    document.getElementById("Voice_Call_button").style.display = "none";
-    document.getElementById("Answer_Call_button").style.display = "block";
-};
-
 const onCallAnswered = (data) => {
     //when other accept our call
     remoteRTCMessage = data.message
     console.log("remoteDescription:",remoteRTCMessage);
     peerConnection.setRemoteDescription(remoteRTCMessage);
 
-    document.getElementById("calling").style.display = "none";
+    document.getElementById("calling").style.visibility = "hidden";
 
     console.log("Call Started. They Answered");
 
@@ -292,21 +348,7 @@ const onCallAnswered = (data) => {
 };
 
 
-function sendCall(data) {
-    //to send a call
-    console.log("Send Call");
 
-    // socket.emit("call", data);
-    chatSocket.send(JSON.stringify({
-        'type': 'call',
-        'sender': userName,
-        // 'room_group':data.GroupName,
-        'message': data.message
-    }));
-    document.getElementById("video_call_button").style.display = "none";
-    document.getElementById("Voice_Call_button").style.display = "none";
-    document.getElementById("calling").style.display = "block";
-};
 
 function answerCall(data) {
     //to answer a call
@@ -317,34 +359,6 @@ function answerCall(data) {
     }));
     callProgress();
 };
-
-
-chatSocket.addEventListener('open', (e) => {
-    console.log('Opened Connection!!!');
-    sendSignal('new-peer', {});
-});
-
-chatSocket.onclose = function (e) {
-    console.error('Chat socket closed unexpectedly', e);
-};
-
-document.querySelector('#chat-message-input').focus();
-document.querySelector('#chat-message-input').addEventListener('keyup', function (e) {
-    if (e.keyCode === 13) {  // enter, return
-        document.querySelector('#chat-message-submit').click();
-    }
-});
-
-document.querySelector('#chat-message-submit').addEventListener('click', function (e) {
-    const messageInputDom = document.querySelector('#chat-message-input');
-    const message = messageInputDom.value;
-    chatSocket.send(JSON.stringify({
-        'type': 'msg',
-        'sender': userName,
-        'message': message
-    }));
-    messageInputDom.value = '';
-});
 
 function sendSignal(type, message) {
     var jsonMsg = JSON.stringify({
@@ -359,7 +373,7 @@ function callProgress() {
 
     document.getElementById("remote_video").style.visibility = "visible";
     document.getElementById("remote_stream").style.visibility="visible";
-    // document.getElementById("inCall").style.display = "block";
+    document.getElementById("Answer_Call_button").style.visibility="hidden";
     callInProgress = true;
 };
 
@@ -368,11 +382,12 @@ function stop() {
     callInProgress = false;
     peerConnection.close();
     peerConnection = null;
-    document.getElementById("video_call_button").style.display = "block";
-    document.getElementById("Voice_Call_button").style.display = "block";
-    document.getElementById("answer").style.display = "none";
-    document.getElementById("inCall").style.display = "none";
-    document.getElementById("calling").style.display = "none";
-    document.getElementById("endVideoButton").style.display = "none"
+    document.getElementById("video_call_button").style.visibility = "visible";
+    document.getElementById("Voice_Call_button").style.visibility = "visible";
+    document.getElementById("Answer_Call_button").style.visibility = "hidden";
+    document.getElementById("calling").style.visibility = "hidden";
+    document.getElementById("remote_stream").style.visibility="hidden";
+    document.getElementById("remote_video").style.visibility="hidden";
+    videoDiv.style.visibility="hidden";
     otherUser = null;
 };

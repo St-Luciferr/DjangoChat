@@ -27,12 +27,25 @@
         <div id="local_video">
             <video id="local_stream" autoplay playsinline></video>
         </div>
+
         <div id="remote_video">
             <video id="remote_stream" autoplay playsinline></video>
+            <button class="button" id="end_call_button">
+                <span class="material-icons">
+                    call_end
+                </span>
+            </button>
         </div>
 
         <div id="calling">
-            
+            <span class="material-icons" id="calling_icon">
+                wifi_calling_3
+            </span>
+            <button id="Answer_Call_button">
+                <span class="material-icons btn_call">
+                    wifi_calling_3
+                </span>
+            </button>
         </div>
 
     </div><br>
@@ -42,22 +55,16 @@
         <input class="button" id="chat-message-submit" type="button" value="Send">
     </div>
     <div class="call-options">
+
         <button class="button" id="video_call_button">
             <span class="material-icons btn_call">
                 video_call
             </span>
-                
         </button>
 
         <button class="button" id="Voice_Call_button">
             <span class="material-icons btn_call">
                 phone
-            </span>
-        </button>
-
-        <button class="button" id="Answer_Call_button">
-            <span class="material-icons btn_call">
-                wifi_calling_3
             </span>
         </button>
     </div>

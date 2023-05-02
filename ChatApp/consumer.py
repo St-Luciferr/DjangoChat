@@ -30,13 +30,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
     # Receive message from WebSocket
     async def receive(self, text_data):
         text_data_json = json.loads(text_data)
-        message = text_data_json["message"]
         sender = text_data_json["sender"]
         event_type = text_data_json['type']
+        message = text_data_json["message"]
 
         # if chat message is received
         if event_type == 'msg':
-
             sending_user = await database_sync_to_async(User.objects.get)(username=sender)
             group = await database_sync_to_async(ChatRoom.objects.get)(name=self.room_group_name)
 
@@ -92,13 +91,22 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     'message': message
                 }
             )
+        elif event_type=='end_call':
+            print("Ending Call:")
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type':'end_call',
+                    'sender':sender,
+                    'message':'ending call'
+                }
+            )
 
     # Receive message from room group
 
     async def chat_message(self, event):
         message = event["message"]
         sender = event["sender"]
-        print("chat_message ", message)
         # Send message to WebSocket (front end)
         await self.send(text_data=json.dumps({
             "type": 'msg',
@@ -107,7 +115,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
         }))
 
     async def incoming_call(self, event):
-        print("Call received: ")
         await self.send(text_data=json.dumps({
             'type': 'call_received',
             'sender': event["sender"],
@@ -120,6 +127,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
             'type': 'call_answered',
             'sender': event["sender"],
             'message': event['message']
+        }))
+
+    async def end_call(self,event):
+        await self.send(text_data=json.dumps({
+            'type':'End_Call',
         }))
 
     async def ICE_Candidate(self, event):
