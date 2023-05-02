@@ -9,7 +9,7 @@ def index(request):
 @login_required
 def room(request, room_name):
     username=request.user.username
-    group_name=room_name
+    group_name="chat_"+room_name
     group=ChatRoom.objects.filter(name=group_name).first()
     chats=[]
     if group:
@@ -18,4 +18,4 @@ def room(request, room_name):
         room=ChatRoom(name=group_name)
         room.save()
     print(username)
-    return render(request, "ChatApp/room.html", {"group_name": group_name,'user_name':username,'chats':chats})
+    return render(request, "ChatApp/room.html", {"room_name": room_name,'user_name':username,'chats':chats})

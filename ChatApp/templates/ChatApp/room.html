@@ -4,6 +4,8 @@
 <html>
 <head>
     <meta charset="utf-8"/>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons"
+    rel="stylesheet">
     <link rel="stylesheet" href="{% static '/chatstyle.css' %}">
     <title>Chat Room</title>
 </head>
@@ -14,7 +16,7 @@
         {% for chat in chats %}
         {% if chat.sender.username == user_name%}
             <div class="self">
-                {{user_name}}: {{chat.content}}
+                me: {{chat.content}}
             </div>
         {% else %}
             <div class="other">
@@ -22,62 +24,47 @@
             </div>
         {% endif %}
         {% endfor %}
+        <div id="local_video">
+            <video id="local_stream" autoplay playsinline></video>
+        </div>
+        <div id="remote_video">
+            <video id="remote_stream" autoplay playsinline></video>
+        </div>
+
+        <div id="calling">
+            
+        </div>
+
     </div><br>
+
     <div class="msg-box">
         <input class="text-area" id="chat-message-input" type="text" size="100">
         <input class="button" id="chat-message-submit" type="button" value="Send">
     </div>
+    <div class="call-options">
+        <button class="button" id="video_call_button">
+            <span class="material-icons btn_call">
+                video_call
+            </span>
+                
+        </button>
 
-    {{ group_name|json_script:"room-name" }}
-    {{ user_name|json_script:'username' }}
-    <script>
-        const roomName = JSON.parse(document.getElementById('room-name').textContent);
-        const userName=JSON.parse(document.getElementById('username').textContent);
-        const chatSocket = new WebSocket(
-            'ws://'
-            + window.location.host
-            + '/ws/chat/'
-            + roomName
-            + '/'
-        );
+        <button class="button" id="Voice_Call_button">
+            <span class="material-icons btn_call">
+                phone
+            </span>
+        </button>
 
-        chatSocket.onmessage = function(e) {
-            var data = JSON.parse(e.data);
-            
-            let sent_by;
-            let display_msg;
-            if(data.sender==userName){
-                sent_by='self';
-            }
-            else{
-               sent_by='other';
-            }
-            console.log(data)
-            display_msg = '<div class="' + sent_by + '">' + data.sender + ': ' + data.message + '</div>';
-            console.log(display_msg);
-            document.querySelector('#chat-log').innerHTML += display_msg;
-        };
+        <button class="button" id="Answer_Call_button">
+            <span class="material-icons btn_call">
+                wifi_calling_3
+            </span>
+        </button>
+    </div>
 
-        chatSocket.onclose = function(e) {
-            console.error('Chat socket closed unexpectedly');
-        };
+    {{ room_name|json_script:"room-name" }}
+    {{ user_name|json_script:"username" }}
+    <script src="{% static '/js/main.js' %}"></script>
 
-        document.querySelector('#chat-message-input').focus();
-        document.querySelector('#chat-message-input').onkeyup = function(e) {
-            if (e.keyCode === 13) {  // enter, return
-                document.querySelector('#chat-message-submit').click();
-            }
-        };
-
-        document.querySelector('#chat-message-submit').onclick = function(e) {
-            const messageInputDom = document.querySelector('#chat-message-input');
-            const message = messageInputDom.value;
-            chatSocket.send(JSON.stringify({
-                'sender':userName,
-                'message': message
-            }));
-            messageInputDom.value = '';
-        };
-    </script>
 </body>
 </html>
