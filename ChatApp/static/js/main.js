@@ -24,9 +24,9 @@ const chatSocket = new WebSocket(
 );
 
 let pcConfig = {
-    iceServers:[
+    iceServers: [
         {
-            urls:['stun:stun1.1.google.com:19302', 'stun:stun2.1.google.com:19302']
+            urls: ['stun:stun1.1.google.com:19302', 'stun:stun2.1.google.com:19302']
         }
     ]
 };
@@ -76,8 +76,8 @@ chatSocket.onmessage = function (e) {
         onICECandidate(data);
     }
 
-    if(response_type=="End_Call"){
-        onEndCall();
+    if (response_type == "End_Call") {
+        onEndCall(data);
     }
 };
 
@@ -87,9 +87,9 @@ chatSocket.onclose = function (e) {
 
 document.querySelector("#video_call_button").addEventListener("click", call);
 
-document.querySelector('#Answer_Call_button').addEventListener('click',answer);
+document.querySelector('#Answer_Call_button').addEventListener('click', answer);
 
-document.querySelector("#end_call_button").addEventListener('click',EndCall);
+document.querySelector("#end_call_button").addEventListener('click', EndCall);
 
 document.querySelector('#chat-message-input').focus();
 
@@ -156,7 +156,7 @@ function createConnectionAndAddStream() {
 
 function processCall(room_name) {
     peerConnection.createOffer((sessionDescription) => {
-        console.log("session Description: ",sessionDescription);
+        console.log("session Description: ", sessionDescription);
         peerConnection.setLocalDescription(sessionDescription);
         sendCall({
             'message': sessionDescription
@@ -180,22 +180,29 @@ function sendCall(data) {
     document.getElementById("calling").style.visibility = "visible";
 };
 
-const onEndCall=()=>{
+// freeing resources when peer sends end_call signal
+const onEndCall = (data) => {
+    if(data.sender==userName){
+        return;
+    }
     stop();
 }
 
-function EndCall(){
+
+// Ending Call and sending end_call signal to peer
+function EndCall() {
     stop();
     chatSocket.send(JSON.stringify({
         'type': 'end_call',
         'sender': userName,
-        'message':'Ending call'
+        'message': 'Ending call'
     }));
 }
 
+// when new call is received from peer
 const onNewCall = (data) => {
     otherUser = data.sender;
-    if(otherUser==userName){
+    if (otherUser == userName) {
         return;
     }
     remoteRTCMessage = data.message;
@@ -205,8 +212,10 @@ const onNewCall = (data) => {
     document.getElementById("Answer_Call_button").style.visibility = "visible";
 };
 
+
+// accepting a call from peer
 function processAccept() {
-    console.log("answerRTC: ",remoteRTCMessage);
+    console.log("answerRTC: ", remoteRTCMessage);
     peerConnection.setRemoteDescription(remoteRTCMessage);
     peerConnection.createAnswer((sessionDescription) => {
         peerConnection.setLocalDescription(sessionDescription);
@@ -231,7 +240,7 @@ function processAccept() {
         } else {
             console.log("NO Ice candidate in queue");
         }
-        console.log("sessionDescription: ",sessionDescription);
+        console.log("sessionDescription: ", sessionDescription);
         answerCall({
             'caller': otherUser,
             'message': sessionDescription
@@ -242,14 +251,15 @@ function processAccept() {
     })
 };
 
-let createPeerConnection = async()=> {
+// creates RTCPeerConnection
+async function createPeerConnection() {
     try {
         peerConnection = new RTCPeerConnection(pcConfig);
         peerConnection.onicecandidate = handleIceCandidate;
         peerConnection.onaddstream = handleRemoteStreamAdded;
         peerConnection.onremovestream = handleRemoteStreamRemoved;
         console.log('Created RTCPeerConnnection');
-        remoteStream=new MediaStream();
+        remoteStream = new MediaStream();
 
         return;
     } catch (e) {
@@ -257,23 +267,25 @@ let createPeerConnection = async()=> {
         alert('Cannot create RTCPeerConnection object.');
         return;
     }
-};
+}
 
+// when ICECandidates are received
 const onICECandidate = (data) => {
     console.log("GOT ICE candidate");
     let message = data.message
     let candidate;
-    if(data.sender==userName){
+    console.log("Remote Description on ICE Candidate", remoteRTCMessage);
+    if (data.sender == userName) {
         return;
     }
     if (message.candidate) {
         console.log(message);
         candidate = new RTCIceCandidate({
-          'candidate':message.candidate.candidate,
-          'sdpMid': message.candidate.sdpMid,
-          'sdpMLineIndex': message.candidate.sdpMLineIndex
+            'candidate': message.candidate.candidate,
+            'sdpMid': message.candidate.sdpMid,
+            'sdpMLineIndex': message.candidate.sdpMLineIndex
         });
-        console.log("Candidate Created:",candidate);
+        console.log("Candidate Created:", candidate);
 
     } else {
         console.error("Invalid message format:", message);
@@ -294,7 +306,7 @@ function handleIceCandidate(event) {
     if (event.candidate) {
         console.log("Local ICE candidate");
         // console.log(event.candidate.candidate);
-        console.log("candidate from handler",event.candidate.sdpMid);
+        console.log("candidate from handler", event.candidate.sdpMid);
         sendICEcandidate({
             'user': otherUser,
             'message': {
@@ -303,7 +315,7 @@ function handleIceCandidate(event) {
                 'candidate': event.candidate
             }
         })
-        
+
     } else {
         console.log('End of candidates.');
     }
@@ -312,7 +324,7 @@ function handleIceCandidate(event) {
 function sendICEcandidate(data) {
     //send only if we have caller, else no need to
     console.log("Send ICE candidate");
-    console.log("ICE Data: ",data.message);
+    console.log("ICE Data: ", data.message);
     // socket.emit("ICEcandidate", data)
     chatSocket.send(JSON.stringify({
         'type': 'ICE_Candidate',
@@ -337,24 +349,24 @@ function handleRemoteStreamRemoved(event) {
 const onCallAnswered = (data) => {
     //when other accept our call
     remoteRTCMessage = data.message
-    console.log("remoteDescription:",remoteRTCMessage);
-    peerConnection.setRemoteDescription(remoteRTCMessage);
+    console.log("remoteDescription on answered:", remoteRTCMessage);
+    if (data.sender != userName) {
+        peerConnection.setRemoteDescription(remoteRTCMessage);
+    } else {
+        console.log("I am answering");
+    }
 
     document.getElementById("calling").style.visibility = "hidden";
 
     console.log("Call Started. They Answered");
-
-    callProgress()
+    callProgress();
 };
-
-
-
 
 function answerCall(data) {
     //to answer a call
     chatSocket.send(JSON.stringify({
         'type': 'answer_call',
-        'sender': data.caller,
+        'sender': userName,
         'message': data.message
     }));
     callProgress();
@@ -372,12 +384,13 @@ function sendSignal(type, message) {
 function callProgress() {
 
     document.getElementById("remote_video").style.visibility = "visible";
-    document.getElementById("remote_stream").style.visibility="visible";
-    document.getElementById("Answer_Call_button").style.visibility="hidden";
+    document.getElementById("remote_stream").style.visibility = "visible";
+    document.getElementById("Answer_Call_button").style.visibility = "hidden";
     callInProgress = true;
 };
 
 function stop() {
+    console.log("Ending Call");
     localStream.getTracks().forEach(track => track.stop());
     callInProgress = false;
     peerConnection.close();
@@ -386,8 +399,8 @@ function stop() {
     document.getElementById("Voice_Call_button").style.visibility = "visible";
     document.getElementById("Answer_Call_button").style.visibility = "hidden";
     document.getElementById("calling").style.visibility = "hidden";
-    document.getElementById("remote_stream").style.visibility="hidden";
-    document.getElementById("remote_video").style.visibility="hidden";
-    videoDiv.style.visibility="hidden";
+    document.getElementById("remote_stream").style.visibility = "hidden";
+    document.getElementById("remote_video").style.visibility = "hidden";
+    videoDiv.style.visibility = "hidden";
     otherUser = null;
 };

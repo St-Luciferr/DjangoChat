@@ -57,7 +57,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
         # if new call is received
         elif event_type == 'call':
             print(sender, "is calling\n")
-            print(message)
             await self.channel_layer.group_send(
                 self.room_group_name,
                 {
@@ -132,6 +131,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def end_call(self,event):
         await self.send(text_data=json.dumps({
             'type':'End_Call',
+            'sender':event["sender"]
         }))
 
     async def ICE_Candidate(self, event):
