@@ -13,4 +13,6 @@
     ```
      pip install -r Requirements.txt 
      ```
+4. Install and run redis server (use memurai in windows).
+    > You can install memurai from [here](https://www.memurai.com/get-memurai).
 
