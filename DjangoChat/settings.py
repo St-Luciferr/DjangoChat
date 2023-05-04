@@ -32,8 +32,6 @@ ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
     "daphne",
-    "Users.apps.UsersConfig",
-    "ChatApp.apps.ChatappConfig",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -42,6 +40,9 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "crispy_forms",
     "crispy_bootstrap5",
+    "Users.apps.UsersConfig",
+    "ChatApp.apps.ChatappConfig",
+    "VideoChat.apps.VideochatConfig",
 ]
 
 MIDDLEWARE = [
@@ -143,3 +144,4 @@ LOGIN_URL = 'login'
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+ALLOWED_HOSTS = ["localhost", "192.168.16.105","127.0.0.1"]

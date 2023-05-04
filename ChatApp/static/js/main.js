@@ -36,6 +36,10 @@ let sdpConstraints = {
     offerToReceiveVideo: true
 };
 
+let MsgLog=document.querySelector('#chat-log');
+MsgLog.scrollTop=MsgLog.scrollHeight;
+// alert("log:", MsgLog.innerHTML);
+
 chatSocket.addEventListener('open', (e) => {
     console.log('Opened Connection!!!');
     sendSignal('new-peer', {});
@@ -60,7 +64,8 @@ chatSocket.onmessage = function (e) {
         console.log(data)
         display_msg = '<div class="' + sent_by + '">' + tmp + ': ' + data.message + '</div>';
         console.log(display_msg);
-        document.querySelector('#chat-log').innerHTML += display_msg;
+        MsgLog.innerHTML += display_msg;
+        MsgLog.scrollTop=MsgLog.scrollHeight;
     }
 
     if (response_type == 'call_received') {

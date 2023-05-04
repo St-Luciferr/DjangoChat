@@ -2,6 +2,13 @@ from django.contrib import admin
 from .models import ChatMsg,ChatRoom
 # Register your models here.
 
-admin.site.register(ChatRoom)
+class RoomAdmin(admin.ModelAdmin):
+    list_display=('name',)
 
-admin.site.register(ChatMsg)
+
+admin.site.register(ChatRoom,RoomAdmin)
+
+class MsgAdmin(admin.ModelAdmin):
+    list_display=('sender','room_name','timestamp','content')
+  
+admin.site.register(ChatMsg,MsgAdmin)
